@@ -1,0 +1,24 @@
+// Vitest Snapshot v1
+
+exports[`test > should pass 1`] = `
+"function twoNumberSum(array, targetSum) {
+  cache.__(array, \\"array\\");
+
+  cache.__(targetSum, \\"targetSum\\");
+
+  const hash = cache._o({}, \\"hash\\");
+
+  for (let number of array) {
+    cache.__(number, \\"number\\");
+
+    if (hash[number]) {
+      return cache.__(number > hash[number] ? [hash[number], number] : [number, hash[number]], \\"number > hash[number] ? [hash[number], number] : [number, hash[number]]\\");
+    }
+
+    cache._0 = cache.__(targetSum - number, \\"targetSum - number\\")
+    hash[cache._0] = cache.__(number, \\"hash[targetSum - number]\\");
+  }
+
+  return cache._a([], \\"[]\\");
+}"
+`;

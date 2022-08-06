@@ -13,12 +13,12 @@
     "@babel/core": "^7.18.10",
     "@babel/generator": "^7.18.12",
     "@babel/parser": "^7.18.11",
+    "@babel/traverse": "^7.18.11",
     "@babel/types": "^7.18.10",
+    "@types/babel__generator": "^7.6.4",
+    "@types/babel__traverse": "^7.18.0",
     "typescript": "^4.7.4",
+    "vite": "^3.0.4",
     "vitest": "^0.21.0"
-  },
-  "dependencies": {
-    "@types/babel-generator": "^6.25.5",
-    "@types/babel-traverse": "^6.25.7"
   }
 }

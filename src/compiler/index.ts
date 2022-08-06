@@ -12,17 +12,9 @@ const randomString = (l = 3) => {
 export function stepify(code: string) {
   const ast = parse(code) as any;
 
-  const _name = "__" + randomString();
+  const _name = "cache";
   const _wrapper_id = t.identifier(_name);
-  const params = {
-    name: t.identifier("name"),
-  };
-  const body = t.blockStatement([]);
-  global[_wrapper_id] = {
-    __: function () {},
-    _o: function () {},
-    _a: function () {},
-  };
+
   const proxy = (node, ...args) => {
     if (t.isObjectExpression(node)) {
       return t.callExpression(t.memberExpression(_wrapper_id, t.identifier("_o")), [node, ...args]);
@@ -31,6 +23,14 @@ export function stepify(code: string) {
     } else {
       return t.callExpression(t.memberExpression(_wrapper_id, t.identifier("__")), [node, ...args]);
     }
+  };
+  let proxyAssigments = 0;
+  const proxyAssignment = (node) => {
+    return t.assignmentExpression(
+      "=",
+      t.memberExpression(_wrapper_id, t.identifier("_" + proxyAssigments++)),
+      proxy(node, t.stringLiteral(code.slice(node.start, node.end)))
+    );
   };
 
   traverse(ast, {
@@ -47,10 +47,34 @@ export function stepify(code: string) {
       path.node.declarations.forEach((declaration) => {
         const { id: identifier, init } = declaration;
         if (init && !t.isFunction(init)) {
-          declaration.init = t.expressionStatement(proxy(init, t.stringLiteral(identifier.name)));
+          declaration.init = proxy(init, t.stringLiteral(identifier.name));
         }
       });
       newNodes.forEach((node) => path.insertAfter(node));
+    },
+    AssignmentExpression(path) {
+      path.node.right = proxy(
+        path.node.right,
+        t.stringLiteral(code.slice(path.node.left.start, path.node.left.end))
+      );
+    },
+    MemberExpression: {
+      enter(path) {
+        if (path.node.object.name !== _name) {
+          if (!t.isIdentifier(path.node.property)) {
+            const nearestSibling = path.findParent(
+              (parent) => t.isBlockStatement(parent.parent) || t.isProgram(parent.parent)
+            );
+            let i = 0;
+            while (nearestSibling.parent.body[i] !== nearestSibling.node) {
+              i++;
+            }
+            const newAssignment = proxyAssignment(path.node.property);
+            nearestSibling.parent.body.splice(i, 0, newAssignment);
+            path.node.property = newAssignment.left;
+          }
+        }
+      },
     },
     "ForOfStatement|ForInStatement"(path) {
       const variables = path.node.left.declarations.map((declaration) => {
@@ -59,16 +83,11 @@ export function stepify(code: string) {
       });
       path.node.body.body = [...variables, ...path.node.body.body];
     },
-
     Expression: {
-      enter() {
-        return;
-      },
-      exit(path) {
+      enter(path) {
         if (
           t.isCallExpression(path) &&
           t.isMemberExpression(path.node.callee) &&
-          path.node.callee.object.name === _name &&
           path.node.callee.object.name === _name
         ) {
           return;
@@ -84,42 +103,13 @@ export function stepify(code: string) {
         if (t.isCallExpression(path) && path.node.callee.name === "_wrapper") return;
         if (t.isLVal(path) || t.isAssignmentExpression(path) || t.isFunction(path)) return;
 
-        // console.log(code.slice(path.node.start, path.node.end))
-        path.replaceWith(proxy(path.node));
-        path.stop();
+        path.replaceWith(
+          proxy(path.node, t.stringLiteral(code.slice(path.node.start, path.node.end)))
+        );
+        path.skip();
       },
     },
-    // ReturnStatement(path) {
-    //     path.node.argument = t.expressionStatement(proxy(path.node.argument))
-    //     // console.log(path.node)
-    // },
-    // BinaryExpression(path) {
-    //     path.replaceWith(t.expressionStatement(proxy(path.node)))
-    //     path.stop()
-    // },
-    // CallExpression(path) {
-    //     if (t.isMemberExpression(path.node.callee) && path.node.callee.object.name === _name) {
-    //         return
-    //     }
-    //     path.replaceWith(t.expressionStatement(t.callExpression(_wrapper_id, [path.node])))
-    //     path.stop()
-    // }
-    // ,
-    // MemberExpression(path) {
-    //     if (path.node.object.name === _name) return
-    // }
-    // enter(path) {
-    //     path.visited = true
-    // },
-    // exit(path) {
-    //     // console.log(path.visited)
-    //     // // if (t.isExpression(path)) {
-    //     // //     if (t.isAssignmentExpression(path) || t.isAssignmentPattern(path) || t.isLVal(path)) return
-    //     // //     path.replaceWith(t.expressionStatement(t.callExpression(_wrapper_id, [path.node])))
-    //     // // }
-    //     // path.visited = true
-    //     path.stop()
-    // }
   });
+
   return generate(ast).code;
 }
