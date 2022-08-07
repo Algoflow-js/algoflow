@@ -1,7 +1,5 @@
-import { parse } from "@babel/parser";
+import { parse, traverse, types as t, transformSync, transform } from "@babel/core";
 import generate from "@babel/generator";
-import traverse from "@babel/traverse";
-import * as t from "@babel/types";
 
 const randomString = (l = 3) => {
   let id = ((Math.random() * 26 + 10) | 0).toString(36);

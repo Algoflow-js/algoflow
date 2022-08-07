@@ -1,7 +1,7 @@
 // Vitest Snapshot v1
 
 exports[`test > should pass 1`] = `
-"function twoNumberSum(array, targetSum) {
+"const twoNumberSum = (array, targetSum) => {
   cache.__(array, \\"array\\");
 
   cache.__(targetSum, \\"targetSum\\");
@@ -20,5 +20,5 @@ exports[`test > should pass 1`] = `
   }
 
   return cache._a([], \\"[]\\");
-}"
+};"
 `;
